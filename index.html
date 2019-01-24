@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://unpkg.com/react@16/umd/react.development.js" crossorigin></script>
+        <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js" crossorigin></script>
+        <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+        <script src="https://d3js.org/d3.v4.min.js"></script>
+        <link rel="stylesheet" href="styles.css" />
+        <title>Connect 4</title>
+    </head>
+    <body>
+        <div id="app" />
+        <script type="text/babel">
+
+        class App extends React.Component {
+            constructor(props) {
+                super(props);
+
+                this.state = {
+                    board: [[], [], [], [], [], [], []],
+                    red: true,
+                    winner: null
+                };
+            }
+
+            render() {
+                let rows = [];
+                for (let i = 6; i >= 0; i--) {
+                    const row = this.state.board.map((col, j) => {
+                        return (
+                            <td><svg onClick={this.makeMove} width="50px" height="50px" data-row={i} data-col={j} id={`row${i}-col${j}`} /></td>
+                        )
+                    });
+                    rows.push(<tr>{row}</tr>)
+                }
+
+                return (
+                    <div>
+                        <h1>Connect Four</h1>
+                        <h2>{this.state.winner ? "Win:" : "Turn:"} {this.state.red ? "red" : "black"}</h2>
+                        <table>
+                            <thead></thead>
+                            <tbody>
+                                {rows}
+                            </tbody>
+                        </table>
+                        <button onClick={this.reset}>Reset</button>
+                    </div>
+                );
+            }
+
+            makeMove = (event) => {
+                if (this.state.winner) {
+                    return;
+                }
+                event.persist();
+                if (this.state.board[event.target.dataset.col].length < 7) {
+                    // can make move here
+                    const col = event.target.dataset.col;
+                    const cell = d3.select(`#row${this.state.board[col].length}-col${col}`);
+                    cell.append("circle")
+                        .attr("cx", 25)
+                        .attr("cy", 25)
+                        .attr("r", 25)
+                        .style("fill", (this.state.red ? "red" : "black"));
+                    this.setState((state => {
+                        const newRow = [...state.board[col], state.red ? "red" : "black"];
+                        const newBoard = [...state.board]
+                        newBoard.splice(col, 1, newRow);
+                        return {
+                            board: newBoard,
+                            red: !state.red
+                        }
+                    }), this.checkWin);
+                }
+            }
+
+            checkWin = () => {
+                // this is who just moved
+                const move = this.state.red ? "black" : "red";
+                const board = this.state.board;
+
+                // check four in a row in columns
+                for (let i = 0; i < 7; i++) {
+                    const check = board[i].filter((cell) => {
+                        return cell === move;
+                    });
+
+                    if (check.length >= 4) {
+                        this.setWin(move);
+                        return;
+                    }
+                }
+
+                // check four in a row in columns
+                for (let i = 0; i < 7; i++) {
+                    const check = board.filter((col) => {
+                        return col[i] == move;
+                    });
+
+                    if (check.length >= 4) {
+                        this.setWin(move);
+                        return;
+                    }
+                }
+
+                // check diagonals
+                let slant = [];
+                // down-left
+                for (let k = 0; k < 4; k++) {
+                    for (let i = 0; i < 7; i++) {
+                        for (let j = 0; i+j < 7 && j+k < 7; j++) {
+                            if (board[j+k][i+j] == move) {
+                                slant.push(board[j+k][i+j]);
+                            }
+                        }
+                        if (slant.length >= 4) {
+                            this.setWin(move);
+                            return;
+                        } else {
+                            slant = [];
+                        }
+                    }
+                }
+                // down-right
+                for (let k = 0; k < 4; k++) {
+                    for (let i = 0; i < 7; i++) {
+                        for (let j = 0; i+j < 7 && j+k < 7; j++) {
+                            if (board[j+k][6-j-i] == move) {
+                                slant.push(board[j+k][6-j-i]);
+                            }
+                        }
+                        if (slant.length >= 4) {
+                            this.setWin(move);
+                            return;
+                        } else {
+                            slant = [];
+                        }
+                    }
+                }      
+            }
+
+            setWin = (winner) => {
+                this.setState({
+                    winner: winner,
+                    red: winner == "red" ? true : false
+                });
+            }
+
+            reset = () => {
+                d3.selectAll('circle').remove();
+                this.setState({
+                    board: [[], [], [], [], [], [], []],
+                    red: true,
+                    winner: null
+                });
+            }
+        }
+
+        ReactDOM.render(<App />, document.querySelector("#app"));
+
+        </script>
+    </body>
+</html>
