@@ -56,7 +56,7 @@
                 event.persist();
                 if (this.state.board[event.target.dataset.col].length < 7) {
                     // can make move here
-                    const col = event.target.dataset.col;
+                    const col = parseInt(event.target.dataset.col);
                     const cell = d3.select(`#row${this.state.board[col].length}-col${col}`);
                     cell.append("circle")
                         .attr("cx", 25)
@@ -71,73 +71,34 @@
                             board: newBoard,
                             red: !state.red
                         }
-                    }), this.checkWin);
+                    }), () => {this.checkWin(col)});
                 }
             }
 
-            checkWin = () => {
+            checkWin = (c) => {
                 // this is who just moved
                 const move = this.state.red ? "black" : "red";
-                const board = this.state.board;
+                const row = this.state.board[c].length - 1;
 
-                // check four in a row in columns
-                for (let i = 0; i < 7; i++) {
-                    const check = board[i].filter((cell) => {
-                        return cell === move;
-                    });
+                // check vertical
+                this.checkFour(this.state.board[c], move);
 
-                    if (check.length >= 4) {
-                        this.setWin(move);
-                        return;
-                    }
-                }
-
-                // check four in a row in columns
-                for (let i = 0; i < 7; i++) {
-                    const check = board.filter((col) => {
-                        return col[i] == move;
-                    });
-
-                    if (check.length >= 4) {
-                        this.setWin(move);
-                        return;
-                    }
-                }
+                // check horizontal
+                const horiz = this.state.board.map((col) => {
+                    return col[row];
+                });
+                this.checkFour(horiz, move);
 
                 // check diagonals
-                let slant = [];
-                // down-left
-                for (let k = 0; k < 4; k++) {
-                    for (let i = 0; i < 7; i++) {
-                        for (let j = 0; i+j < 7 && j+k < 7; j++) {
-                            if (board[j+k][i+j] == move) {
-                                slant.push(board[j+k][i+j]);
-                            }
-                        }
-                        if (slant.length >= 4) {
-                            this.setWin(move);
-                            return;
-                        } else {
-                            slant = [];
-                        }
-                    }
-                }
-                // down-right
-                for (let k = 0; k < 4; k++) {
-                    for (let i = 0; i < 7; i++) {
-                        for (let j = 0; i+j < 7 && j+k < 7; j++) {
-                            if (board[j+k][6-j-i] == move) {
-                                slant.push(board[j+k][6-j-i]);
-                            }
-                        }
-                        if (slant.length >= 4) {
-                            this.setWin(move);
-                            return;
-                        } else {
-                            slant = [];
-                        }
-                    }
-                }      
+                const drdiag = this.state.board.map((col, i) => {
+                    return col[row + c - i];
+                });
+                this.checkFour(drdiag, move);
+
+                const dldiag = this.state.board.map((col, i) => {
+                    return col[row + i - c];
+                });
+                this.checkFour(dldiag, move);
             }
 
             setWin = (winner) => {
@@ -154,6 +115,31 @@
                     red: true,
                     winner: null
                 });
+            }
+
+            fourinrow = (array, element) => {
+                if (array.length < 4) {
+                    return false;
+                }
+                for (let i = 0; i < array.length - 3; i++) {
+                    let count = 0;
+                    for (let j = 0; j < 4; j++) {
+                        if (array.slice(i, i+4)[j] == element) {
+                            count++;
+                        }
+                    }  
+                    if (count == 4) {
+                        return true;
+                    }      
+                }
+                return false;
+            }
+
+            checkFour = (array, move) => {
+                if (this.fourinrow(array, move)) {
+                    this.setWin(move);
+                    return;
+                }
             }
         }
 
